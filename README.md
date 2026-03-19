@@ -423,7 +423,7 @@ This project is part of academic research. See LICENSE file for details.
 ## Contact
 
 For questions or support:
-- Email: dhruv@example.com
+- Email: drv.sharmaxv@gmail.com
 - GitHub Issues: [BurnoutSense Issues](https://github.com/dhruvjoshi137/BurnoutSense/issues)
 
 ## Acknowledgments
