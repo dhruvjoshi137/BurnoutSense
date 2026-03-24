@@ -6,21 +6,38 @@ from pathlib import Path
 import joblib
 from sklearn.model_selection import train_test_split
 
-from src.config import (
-    DEFAULT_DATASET_PATH,
-    FALLBACK_DATASET_PATHS,
-    FIGURES_DIR,
-    MODELS_DIR,
-    REPORTS_DIR,
-)
-from src.data_pipeline import build_burnout_targets, load_dataset, select_feature_matrix
-from src.evaluation import evaluate_predictions
-from src.inference import predict_new_student
-from src.modeling import (
-    build_logistic_regression_pipeline,
-    build_random_forest_pipeline,
-)
-from src.visualization import generate_visualizations
+try:
+    from .src.config import (
+        DEFAULT_DATASET_PATH,
+        FALLBACK_DATASET_PATHS,
+        FIGURES_DIR,
+        MODELS_DIR,
+        REPORTS_DIR,
+    )
+    from .src.data_pipeline import build_burnout_targets, load_dataset, select_feature_matrix
+    from .src.evaluation import evaluate_predictions
+    from .src.inference import predict_new_student
+    from .src.modeling import (
+        build_logistic_regression_pipeline,
+        build_random_forest_pipeline,
+    )
+    from .src.visualization import generate_visualizations
+except ImportError:
+    from src.config import (
+        DEFAULT_DATASET_PATH,
+        FALLBACK_DATASET_PATHS,
+        FIGURES_DIR,
+        MODELS_DIR,
+        REPORTS_DIR,
+    )
+    from src.data_pipeline import build_burnout_targets, load_dataset, select_feature_matrix
+    from src.evaluation import evaluate_predictions
+    from src.inference import predict_new_student
+    from src.modeling import (
+        build_logistic_regression_pipeline,
+        build_random_forest_pipeline,
+    )
+    from src.visualization import generate_visualizations
 
 
 def run_research_pipeline(dataset_path: Path | str = DEFAULT_DATASET_PATH) -> None:
@@ -60,8 +77,10 @@ def run_research_pipeline(dataset_path: Path | str = DEFAULT_DATASET_PATH) -> No
     lr_pred = lr_model.predict(x_test)
     lr_metrics = evaluate_predictions(y_test, lr_pred)
 
-    best_model = rf_model if rf_metrics["accuracy"] >= lr_metrics["accuracy"] else lr_model
-    best_model_name = "Random Forest" if rf_metrics["accuracy"] >= lr_metrics["accuracy"] else "Logistic Regression"
+    rf_key = (rf_metrics["f1_macro"], rf_metrics["accuracy"])
+    lr_key = (lr_metrics["f1_macro"], lr_metrics["accuracy"])
+    best_model = rf_model if rf_key >= lr_key else lr_model
+    best_model_name = "Random Forest" if rf_key >= lr_key else "Logistic Regression"
 
     rf_model_path = MODELS_DIR / "burnout_random_forest.joblib"
     lr_model_path = MODELS_DIR / "burnout_logistic_regression.joblib"
@@ -99,7 +118,9 @@ def run_research_pipeline(dataset_path: Path | str = DEFAULT_DATASET_PATH) -> No
     print(f"Dataset used: {dataset_path}")
     print("\n=== Model Comparison ===")
     print(f"Random Forest Accuracy:     {rf_metrics['accuracy']}")
+    print(f"Random Forest Macro-F1:     {rf_metrics['f1_macro']}")
     print(f"Logistic Regression Accuracy: {lr_metrics['accuracy']}")
+    print(f"Logistic Regression Macro-F1: {lr_metrics['f1_macro']}")
     print(f"Best Model Selected: {best_model_name}")
     print(f"\nModels saved:")
     print(f"  - {rf_model_path}")
@@ -112,6 +133,9 @@ def run_research_pipeline(dataset_path: Path | str = DEFAULT_DATASET_PATH) -> No
     else:
         metrics = lr_metrics
     print(f"Accuracy: {metrics['accuracy']}")
+    print(f"Macro-F1: {metrics['f1_macro']}")
+    print(f"Macro-Precision: {metrics['precision_macro']}")
+    print(f"Macro-Recall: {metrics['recall_macro']}")
     print("Confusion Matrix:")
     for row in metrics["confusion_matrix"]:
         print(row)

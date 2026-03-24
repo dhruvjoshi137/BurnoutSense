@@ -1,7 +1,9 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
+import { getApiBaseUrl } from "../services/api";
 
 function DashboardPage() {
+  const baseUrl = getApiBaseUrl();
   const [metrics, setMetrics] = useState(null);
   const [visualizations, setVisualizations] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -11,15 +13,17 @@ function DashboardPage() {
     const fetchData = async () => {
       try {
         // Fetch metrics from backend
-        const metricsRes = await axios.get("http://localhost:8000/api/metrics");
-        const vizsRes = await axios.get("http://localhost:8000/api/visualizations");
+        const metricsRes = await axios.get(`${baseUrl}/api/metrics`);
+        const vizsRes = await axios.get(`${baseUrl}/api/visualizations`);
         
         setMetrics(metricsRes.data);
         // Convert relative paths to full URLs for image loading
         setVisualizations({
-          stress_vs_cgpa: `http://localhost:8000${vizsRes.data.stress_vs_cgpa}`,
-          sleep_quality_vs_burnout: `http://localhost:8000${vizsRes.data.sleep_quality_vs_burnout}`,
-          financial_stress_vs_burnout: `http://localhost:8000${vizsRes.data.financial_stress_vs_burnout}`,
+          stress_vs_cgpa: vizsRes.data.stress_vs_cgpa ? `${baseUrl}${vizsRes.data.stress_vs_cgpa}` : null,
+          sleep_quality_vs_burnout: vizsRes.data.sleep_quality_vs_burnout ? `${baseUrl}${vizsRes.data.sleep_quality_vs_burnout}` : null,
+          financial_stress_vs_burnout: vizsRes.data.financial_stress_vs_burnout
+            ? `${baseUrl}${vizsRes.data.financial_stress_vs_burnout}`
+            : null,
         });
       } catch (err) {
         console.error("Error fetching data:", err);
@@ -54,9 +58,9 @@ function DashboardPage() {
           },
         });
         setVisualizations({
-          stress_vs_cgpa: "http://localhost:8000/api/visualizations/stress_vs_cgpa.png",
-          sleep_quality_vs_burnout: "http://localhost:8000/api/visualizations/sleep_quality_vs_burnout.png",
-          financial_stress_vs_burnout: "http://localhost:8000/api/visualizations/financial_stress_vs_burnout.png",
+          stress_vs_cgpa: `${baseUrl}/api/visualizations/stress_vs_cgpa.png`,
+          sleep_quality_vs_burnout: `${baseUrl}/api/visualizations/sleep_quality_vs_burnout.png`,
+          financial_stress_vs_burnout: `${baseUrl}/api/visualizations/financial_stress_vs_burnout.png`,
         });
       } finally {
         setLoading(false);

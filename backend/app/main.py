@@ -1,7 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.api.routes.auth import router as auth_router
 from app.api.routes.predict import router as predict_router
+from app.api.routes.progress import router as progress_router
+from app.db import Base, engine
+from app.models import db_models  # noqa: F401
 
 app = FastAPI(
     title="BurnoutSense API",
@@ -21,6 +25,13 @@ app.add_middleware(
 )
 
 app.include_router(predict_router, prefix="/api")
+app.include_router(auth_router, prefix="/api")
+app.include_router(progress_router, prefix="/api")
+
+
+@app.on_event("startup")
+def on_startup() -> None:
+    Base.metadata.create_all(bind=engine)
 
 
 @app.get("/", tags=["Health"])

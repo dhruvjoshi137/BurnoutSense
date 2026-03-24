@@ -315,6 +315,9 @@ h3 {
 
 input[type="number"],
 input[type="text"],
+input[type="email"],
+input[type="password"],
+textarea,
 select {
     width: 100%;
     padding: 0.7rem 0.9rem;
@@ -328,10 +331,16 @@ select {
 }
 
 input:focus,
+textarea:focus,
 select:focus {
     outline: none;
     border-color: var(--accent);
     box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+}
+
+textarea {
+    resize: vertical;
+    min-height: 90px;
 }
 
 .alert {

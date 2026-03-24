@@ -44,9 +44,14 @@ def _build_preprocessor() -> ColumnTransformer:
 
 def build_random_forest_pipeline() -> Pipeline:
     classifier = RandomForestClassifier(
-        n_estimators=250,
+        n_estimators=500,
+        max_depth=18,
+        min_samples_split=4,
+        min_samples_leaf=2,
+        max_features="sqrt",
         random_state=42,
         class_weight="balanced",
+        n_jobs=-1,
     )
     return Pipeline(
         steps=[
@@ -59,7 +64,9 @@ def build_random_forest_pipeline() -> Pipeline:
 def build_logistic_regression_pipeline() -> Pipeline:
     classifier = LogisticRegression(
         random_state=42,
-        max_iter=500,
+        max_iter=1200,
+        C=1.5,
+        solver="lbfgs",
         class_weight="balanced",
     )
     return Pipeline(

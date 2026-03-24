@@ -14,6 +14,7 @@ from app.models.schemas import (
 )
 from app.services.abi import classify_risk, compute_abi
 from app.services.dataset_adapter import row_to_abi_inputs
+from app.services.model_inference import predict_risk_batch
 from app.services.recommendations import build_recommendations
 
 router = APIRouter(tags=["Burnout Prediction"])
@@ -59,9 +60,12 @@ def predict_from_csv(payload: CsvPredictionRequest) -> CsvPredictionResponse:
 
     df = pd.read_csv(csv_path).head(payload.limit)
 
+    model_predictions = predict_risk_batch(df)
+
     predictions = []
-    for index, row in df.iterrows():
-        derived = row_to_abi_inputs(row.to_dict())
+    records = df.to_dict(orient="records")
+    for row_pos, (index, row) in enumerate(zip(df.index, records)):
+        derived = row_to_abi_inputs(row)
         score, components = compute_abi(
             sleep_hours=derived["sleep_hours"],
             study_hours=derived["study_hours"],
@@ -69,13 +73,27 @@ def predict_from_csv(payload: CsvPredictionRequest) -> CsvPredictionResponse:
             stress_level=int(derived["stress_level"]),
             mood_level=int(derived["mood_level"]),
         )
+
+        if model_predictions is not None and row_pos < len(model_predictions):
+            selected_risk = str(model_predictions[row_pos]["risk_level"])
+            selected_score = float(model_predictions[row_pos]["burnout_score"])
+            selected_confidence = float(model_predictions[row_pos]["model_confidence"])
+            source = "ml_model"
+        else:
+            selected_risk = classify_risk(score)
+            selected_score = score
+            selected_confidence = None
+            source = "abi_heuristic"
+
         predictions.append(
             {
                 "row_index": int(index),
-                "burnout_score": score,
-                "risk_level": classify_risk(score),
+                "burnout_score": selected_score,
+                "risk_level": selected_risk,
                 "abi_components": components,
                 "derived_inputs": derived,
+                "prediction_source": source,
+                "model_confidence": selected_confidence,
             }
         )
 
@@ -114,23 +132,26 @@ def get_model_metrics() -> dict:
     
     with open(metrics_path, "r") as f:
         metrics = json.load(f)
+
+    rf = metrics["random_forest"]
+    lr = metrics["logistic_regression"]
     
     return {
         "random_forest": {
-            "accuracy": metrics["random_forest"]["accuracy"],
-            "precision": 0.52,
-            "recall": 0.47,
-            "f1_score": 0.49,
-            "confusion_matrix": metrics["random_forest"]["confusion_matrix"],
-            "classification_report": metrics["random_forest"]["classification_report"],
+            "accuracy": rf["accuracy"],
+            "precision": rf.get("precision_macro"),
+            "recall": rf.get("recall_macro"),
+            "f1_score": rf.get("f1_macro"),
+            "confusion_matrix": rf["confusion_matrix"],
+            "classification_report": rf["classification_report"],
         },
         "logistic_regression": {
-            "accuracy": metrics["logistic_regression"]["accuracy"],
-            "precision": 0.38,
-            "recall": 0.35,
-            "f1_score": 0.36,
-            "confusion_matrix": metrics["logistic_regression"]["confusion_matrix"],
-            "classification_report": metrics["logistic_regression"]["classification_report"],
+            "accuracy": lr["accuracy"],
+            "precision": lr.get("precision_macro"),
+            "recall": lr.get("recall_macro"),
+            "f1_score": lr.get("f1_macro"),
+            "confusion_matrix": lr["confusion_matrix"],
+            "classification_report": lr["classification_report"],
         },
         "best_model": metrics["best_model"],
     }

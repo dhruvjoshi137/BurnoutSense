@@ -1,18 +1,17 @@
 import { useState, useEffect } from "react";
-import BehaviorForm from "./components/BehaviorForm";
-import Recommendations from "./components/Recommendations";
-import RiskCard from "./components/RiskCard";
-import TrendChart from "./components/TrendChart";
-import { predictBurnout } from "./services/api";
 import DashboardPage from "./pages/DashboardPage";
 import PredictPage from "./pages/PredictPage";
 import ResearchPage from "./pages/ResearchPage";
 import CsvUploadPage from "./pages/CsvUploadPage";
 import AnalyticsPage from "./pages/AnalyticsPage";
+import AuthPage from "./pages/AuthPage";
+import UserPanelPage from "./pages/UserPanelPage";
+import { clearToken, getCurrentUser, getToken } from "./services/api";
 
 function App() {
   const [currentPage, setCurrentPage] = useState("dashboard");
   const [darkMode, setDarkMode] = useState(false);
+  const [user, setUser] = useState(null);
 
   useEffect(() => {
     // Load dark mode preference from localStorage
@@ -31,6 +30,30 @@ function App() {
     }
     localStorage.setItem("burnoutSenseDarkMode", JSON.stringify(darkMode));
   }, [darkMode]);
+
+  useEffect(() => {
+    const hydrateUser = async () => {
+      const token = getToken();
+      if (!token) {
+        return;
+      }
+      try {
+        const profile = await getCurrentUser();
+        setUser(profile);
+      } catch {
+        clearToken();
+        setUser(null);
+      }
+    };
+
+    hydrateUser();
+  }, []);
+
+  const handleLogout = () => {
+    clearToken();
+    setUser(null);
+    setCurrentPage("dashboard");
+  };
 
   return (
     <div className="app-container">
@@ -83,6 +106,14 @@ function App() {
             </li>
             <li>
               <button
+                className={`nav-tab ${currentPage === "user" ? "active" : ""}`}
+                onClick={() => setCurrentPage("user")}
+              >
+                {user ? "My Panel" : "Login / Signup"}
+              </button>
+            </li>
+            <li>
+              <button
                 className="nav-tab"
                 onClick={() => setDarkMode(!darkMode)}
                 title="Toggle dark mode"
@@ -90,6 +121,13 @@ function App() {
                 {darkMode ? "☀️" : "🌙"}
               </button>
             </li>
+            {user && (
+              <li>
+                <button className="nav-tab" onClick={handleLogout} title="Logout">
+                  Logout
+                </button>
+              </li>
+            )}
           </ul>
         </div>
       </nav>
@@ -100,6 +138,15 @@ function App() {
         {currentPage === "batch" && <CsvUploadPage />}
         {currentPage === "analytics" && <AnalyticsPage />}
         {currentPage === "research" && <ResearchPage />}
+        {currentPage === "user" && !user && (
+          <AuthPage
+            onAuthenticated={(profile) => {
+              setUser(profile);
+              setCurrentPage("user");
+            }}
+          />
+        )}
+        {currentPage === "user" && user && <UserPanelPage user={user} />}
       </main>
 
       <footer className="footer">

@@ -1,9 +1,31 @@
-fastapi==0.115.8
-uvicorn[standard]==0.34.0
-pydantic==2.10.6
-pandas==2.2.3
-numpy==2.2.2
-scikit-learn==1.6.1
-matplotlib==3.10.0
-seaborn==0.13.2
-joblib==1.4.2
+fastapi==0.115.8          # Modern Python web framework used to build APIs quickly and efficiently
+uvicorn[standard]==0.34.0 # ASGI server used to run FastAPI applications
+
+pydantic==2.10.6          # Data validation and parsing library used by FastAPI for request/response models
+
+pandas==2.2.3             # Data analysis and manipulation library (used for working with datasets, tables, CSVs)
+numpy==2.2.2              # Numerical computing library for arrays, matrices, and mathematical operations
+
+scikit-learn==1.6.1       # Machine learning library (used for training models, prediction, preprocessing)
+matplotlib==3.10.0        # Data visualization library for creating graphs and plots
+seaborn==0.13.2           # Advanced statistical visualization built on top of matplotlib
+
+joblib==1.4.2             # Used for saving and loading trained ML models efficiently
+sqlalchemy==2.0.38        # ORM for interacting with databases using Python objects instead of raw SQL
+alembic==1.10.2           # Database migration tool used with SQLAlchemy to manage schema changes
+
+python-jose==3.3.0        # Library for creating and verifying JWT tokens (authentication)
+passlib==1.7.4            # Secure password hashing and verification
+bcrypt==4.2.1             # Strong hashing algorithm used for storing passwords securely
+
+python-multipart==0.0.20  # Handles form-data and file uploads in FastAPI
+email-validator==2.2.0    # Validates email addresses in API inputs
+sqlalchemy                # ORM for interacting with databases using Python objects instead of raw SQL
+alembic                   # Database migration tool used with SQLAlchemy to manage schema changes
+
+python-jose               # Library for creating and verifying JWT tokens (authentication)
+passlib                   # Secure password hashing and verification
+bcrypt                    # Strong hashing algorithm used for storing passwords securely
+
+python-multipart          # Handles form-data and file uploads in FastAPI
+email-validator           # Validates email addresses in API inputs
