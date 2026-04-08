@@ -20,12 +20,3 @@ bcrypt==4.2.1             # Strong hashing algorithm used for storing passwords 
 
 python-multipart==0.0.20  # Handles form-data and file uploads in FastAPI
 email-validator==2.2.0    # Validates email addresses in API inputs
-sqlalchemy                # ORM for interacting with databases using Python objects instead of raw SQL
-alembic                   # Database migration tool used with SQLAlchemy to manage schema changes
-
-python-jose               # Library for creating and verifying JWT tokens (authentication)
-passlib                   # Secure password hashing and verification
-bcrypt                    # Strong hashing algorithm used for storing passwords securely
-
-python-multipart          # Handles form-data and file uploads in FastAPI
-email-validator           # Validates email addresses in API inputs
