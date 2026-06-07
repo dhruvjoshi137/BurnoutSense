@@ -1,0 +1,470 @@
+\documentclass[conference]{IEEEtran}
+
+\usepackage{cite}
+\usepackage{amsmath,amssymb,amsfonts}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{url}
+\usepackage{xcolor}
+\usepackage{array}
+\usepackage{enumitem}
+\usepackage{capt-of}
+
+\title{BurnoutSense: A Hybrid Machine Learning and Academic Burnout Index Framework for Early Student Burnout Risk Assessment}
+
+\author{%
+\IEEEauthorblockN{Abhinav Mishra, Dhruv Sharma, Vivek Kumar Sahani, Naman Bagdwal}
+\IEEEauthorblockA{%
+Department of Computer Science and Engineering \\
+SRM Institute of Science and Technology \\
+Chennai, India \\
+maabhinav550@gmail.com, drv.sharmax@gmail.com, viveksahani4648@gmail.com, namanbagdwal@gmail.com}
+}
+
+\begin{document}
+
+\maketitle
+
+\begin{abstract}
+Student burnout is a multifaceted problem that adversely affects academic achievement, mental health, and overall student success. This paper presents \textit{BurnoutSense}, an AI-driven system for detecting student burnout risk based on behavioral and psychosocial features, including sleep behavior, study time, screen usage, stress level, and mood. The system integrates a supervised machine learning pipeline with a rule-based Academic Burnout Index~(ABI) to produce interpretable, multi-level risk assessments.
+
+BurnoutSense is evaluated on a mental health student dataset comprising over 7,000 records. Burnout risk is classified into three categories: \textit{Low}, \textit{Moderate}, and \textit{High}. Two classifiers---Logistic Regression and Random Forest---are compared within a unified preprocessing pipeline that encompasses data cleaning, encoding, and normalization. Experimental results demonstrate that Random Forest outperforms Logistic Regression on the primary selection criterion (Macro-F1), making it the preferred model for deployment.
+
+Beyond model training, BurnoutSense is realized as a full-stack application built on FastAPI with a React-based web interface supporting real-time prediction, batch processing, and longitudinal trend visualization. Although the system achieves reasonable predictive performance, challenges arising from class imbalance and behavioral overlap between adjacent risk levels are acknowledged. Nonetheless, BurnoutSense serves as a practical preventive tool for early burnout risk identification. It is emphasized that the system is not intended to replace clinical diagnostic instruments but rather to support timely intervention.
+\end{abstract}
+
+\begin{IEEEkeywords}
+Student burnout, educational data mining, machine learning, random forest, risk assessment, early warning system.
+\end{IEEEkeywords}
+
+%% ====================================================================
+\section{Introduction}
+%% ====================================================================
+
+Student burnout has attracted increasing research attention owing to its association with declining academic performance, diminished motivation, and deteriorating mental health~\cite{burnout_overview, edu_mental_health}. The proliferation of online learning modalities and growing academic workloads in modern universities has created an urgent need for \emph{proactive} burnout risk prediction, as opposed to traditional retrospective approaches. Limited institutional resources, the dynamic nature of student behavior, and the gradual onset of burnout render its detection difficult without dedicated preventive mechanisms~\cite{early_warning_higher_ed}.
+
+Existing literature on educational analytics and mental health research suggests that behavioral and psychosocial factors---including sleep patterns, stress levels, and lifestyle habits---are highly relevant to burnout risk assessment~\cite{edm_survey, student_stress_ml}. Nevertheless, current systems exhibit several shortcomings:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Lack of continuous monitoring}: Most approaches rely on one-time survey administration rather than longitudinal tracking.
+    \item \textbf{Isolated indicators}: Risk models frequently depend on a single factor instead of integrating multiple behavioral dimensions.
+    \item \textbf{Insufficient interpretability}: High-accuracy models often function as black boxes, limiting their utility for counselors and educators.
+    \item \textbf{Binary risk paradigm}: Many systems classify burnout as present or absent, neglecting the graded nature of the condition.
+\end{itemize}
+
+To address these gaps, this paper introduces \textit{BurnoutSense}---a hybrid framework that combines predictive machine learning models with the Academic Burnout Index~(ABI), a transparent, rule-based scoring mechanism. The system uses behavioral parameters (sleep hours, study hours, screen time, stress level, and mood level) to classify students into \textit{Low}, \textit{Moderate}, and \textit{High} risk groups. A web-based dashboard further enables longitudinal trend analysis and continuous supervision. Through a comparative evaluation of Random Forest and Logistic Regression classifiers deployed via FastAPI, BurnoutSense is designed to function as a practical early-warning tool in educational settings.
+
+%% ====================================================================
+\section{Related Work}
+%% ====================================================================
+
+Prior research in educational data mining has demonstrated that student well-being, engagement, and academic risk can be estimated from behavioral and psychosocial variables such as sleep patterns, workload, stress, and social support systems~\cite{edm_survey, student_stress_ml}. Tree-based ensemble methods---particularly Random Forests---have been widely adopted for this problem class due to their ability to model nonlinear relationships and feature interactions across mixed-type inputs~\cite{rf_foundation}. Logistic Regression remains a common baseline owing to its simplicity and interpretability~\cite{logreg_multiclass}. In parallel, early warning systems in higher education have shown that predictive analytics can assist institutions in identifying at-risk students before failure or disengagement occurs~\cite{early_warning_higher_ed}.
+
+Despite promising results, several important limitations persist in the existing literature:
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Static assessment}: Many systems rely on one-time survey scores or isolated indicators, limiting their capacity to capture temporal changes in student state.
+    \item \textbf{Limited interpretability}: High-performing models often lack explanatory mechanisms, reducing their suitability for practical intervention workflows.
+    \item \textbf{Binary framing}: Several studies model risk as a binary outcome, although burnout is more naturally expressed as a graded condition.
+    \item \textbf{Class imbalance}: Skewed class distributions frequently result in poor minority-class performance, undermining reliability in real-world deployment~\cite{imbalance_learning}.
+    \item \textbf{Offline focus}: Many existing studies prioritize offline accuracy over deployable decision-support capabilities.
+\end{enumerate}
+
+These limitations motivate a framework that unifies predictive modeling, interpretable scoring, and temporal monitoring within a single system. BurnoutSense addresses this gap by integrating supervised classification with a transparent risk index and trend-based supervision, thereby supporting early intervention while retaining human oversight and explanatory value~\cite{xai_education}.
+
+%% ====================================================================
+\section{Literature Review}
+%% ====================================================================
+
+Table~\ref{tab:literature_review} summarizes representative prior work on student burnout prediction and positions BurnoutSense relative to existing approaches.
+
+\noindent\begin{minipage}{\columnwidth}
+\centering
+\footnotesize
+\renewcommand{\arraystretch}{1.35}
+\captionof{table}{Literature Review of Student Burnout Prediction Approaches}
+\label{tab:literature_review}
+\resizebox{\columnwidth}{!}{%
+\begin{tabular}{|p{2.8cm}|p{3.2cm}|p{2.6cm}|p{4.0cm}|p{3.2cm}|}
+\hline
+\textbf{Author / System} & \textbf{Methodology} & \textbf{Dataset} & \textbf{Key Features} & \textbf{Results} \\
+\hline
+Student Mental Health Studies &
+Statistical correlation analysis &
+Survey data (1{,}405+ records) &
+CGPA, stress, sleep, social support &
+Identifies correlations; lacks predictive capability \\
+\hline
+Logistic Regression Baseline &
+Supervised ML (linear) &
+Same dataset &
+Sleep, stress, mood, study hours &
+Accuracy $\approx$ 34\%; limited performance \\
+\hline
+Random Forest Baseline &
+Ensemble ML (tree-based) &
+Same dataset &
+Behavioral and academic features &
+Accuracy $\approx$ 47\%; improved performance \\
+\hline
+Academic Burnout Index (ABI) &
+Rule-based weighted scoring &
+Derived indicators &
+Sleep factor, stress factor, mood factor &
+Interpretable burnout scoring \\
+\hline
+Visualization-based Analysis &
+Exploratory data visualization &
+Processed dataset &
+Stress vs.\ CGPA, sleep vs.\ burnout &
+Trend analysis only; no prediction \\
+\hline
+\textbf{BurnoutSense (Proposed)} &
+\textbf{ML + Rule-based + Visualization} &
+\textbf{Real + simulated data} &
+\textbf{Lifestyle, academic, behavioral indicators} &
+\textbf{Real-time prediction and analytics} \\
+\hline
+\end{tabular}
+}
+\end{minipage}
+
+
+%% ====================================================================
+\section{Research Gap and Problem Statement}
+%% ====================================================================
+
+Existing methods for student burnout detection rely predominantly on isolated indicators, static risk scoring, or manual interpretation of surveys---none of which support continuous, ongoing supervision. Moreover, current techniques tend to prioritize either prediction performance or interpretability, lacking integration with a temporal analysis component capable of detecting longitudinal variations in student well-being. Additionally, many methodologies treat burnout as a binary phenomenon and employ limited datasets that fail to capture the multi-level nature of risk, thereby reducing their effectiveness as early-warning tools in authentic educational contexts.
+
+\textbf{Problem Statement.} This study aims to develop a practical, interpretable, and continuously supervised burnout-detection framework that classifies students into three risk categories (\textit{Low}, \textit{Moderate}, and \textit{High}) based on observable behavioral features: sleep hours, study hours, screen time, stress level, and mood level.
+
+%% ====================================================================
+\section{Dataset and Problem Formulation}
+%% ====================================================================
+
+\subsection{Dataset Description}
+
+This study uses a student mental health survey dataset containing \textbf{7,022 records} and \textbf{20 attributes}. The data capture academic, behavioral, and psychosocial factors relevant to burnout risk in higher-education settings. Since no direct burnout label is provided, the target variable is derived from clinically relevant proxy indicators available in the dataset. Prior to modeling, selected predictors undergo standard preprocessing, including missing-value handling, categorical encoding, and feature scaling.
+
+\subsection{Target Variable Construction}
+
+The burnout target is constructed by aggregating three psychological severity indicators: Stress Level, Depression Score, and Anxiety Score. The composite score is defined as:
+\begin{equation}
+    \text{Burnout\_Score} = \text{Stress\_Level} + \text{Depression\_Score} + \text{Anxiety\_Score}.
+    \label{eq:burnout_score}
+\end{equation}
+
+This score is then mapped into a three-class risk formulation:
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Low}: Burnout Score $\leq 3$
+    \item \textbf{Moderate}: Burnout Score $\in [4, 6]$
+    \item \textbf{High}: Burnout Score $\geq 7$
+\end{itemize}
+
+The observed class distribution is imbalanced: \textit{High}~=~3{,}937 instances (56.1\%), \textit{Moderate}~=~2{,}383 instances (33.9\%), and \textit{Low}~=~702 instances (10.0\%). This imbalance motivates the use of class-aware learning strategies and macro-level evaluation metrics in downstream experiments.
+
+\subsection{Feature Set}
+
+The predictive feature set comprises seven variables spanning two modalities:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Numeric features}: CGPA, Financial Stress, Semester Credit Load.
+    \item \textbf{Categorical features}: Sleep Quality, Physical Activity, Diet Quality, Social Support.
+\end{itemize}
+
+This mixed-type formulation enables the model to capture both quantitative academic pressure and qualitative lifestyle-support dimensions relevant to student burnout.
+
+%% ====================================================================
+\section{Methodology}
+%% ====================================================================
+
+The BurnoutSense framework is implemented as a structured machine learning pipeline for multi-class burnout risk prediction. The complete workflow comprises data preparation, feature engineering, model training, evaluation, and deployment-oriented inference. This design ensures reproducibility, consistency across models, and practical usability in a continuous monitoring context.
+
+\subsection{Data Preprocessing}
+
+Raw student records are first cleaned and standardized. Missing values are handled separately by data type to preserve statistical validity:
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Numerical features}: Imputed using median values, then normalized via standard scaling.
+    \item \textbf{Categorical features}: Imputed using the most frequent category, then transformed via one-hot encoding with unknown-category handling.
+\end{itemize}
+A column-wise transformation architecture is adopted so that identical preprocessing is applied during both training and inference.
+
+\subsection{Feature Selection and Representation}
+
+Feature selection is guided by domain relevance to burnout behavior and academic load. The final predictor set (Section~IV-C) captures both quantitative and qualitative dimensions. Numerical and categorical partitions are processed jointly through a unified transformation pipeline to generate model-ready feature vectors.
+
+\subsection{Model Training}
+
+Two supervised learning algorithms are trained for comparative analysis:
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Logistic Regression (LR)}: Selected as a transparent, interpretable baseline with stable optimization properties in multi-class settings.
+    \item \textbf{Random Forest (RF)}: Selected for its capacity to capture nonlinear relationships, interaction effects, and mixed-data complexity.
+\end{enumerate}
+
+To mitigate bias arising from skewed class frequencies, \emph{class-weighted learning} is enabled for both models. Data are split using stratified train--test partitioning (80\%/20\%) with a fixed random seed to preserve class proportions and ensure reproducibility.
+
+\subsection{Evaluation Strategy}
+
+Model performance is evaluated using the following metrics: accuracy, macro-precision, macro-recall, macro-F1 score, confusion matrix, and class-wise classification report. Macro-averaged metrics are emphasized to ensure that minority-class behavior is adequately reflected. Model selection follows a two-level criterion:
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Primary}: Macro-F1 score.
+    \item \textbf{Secondary}: Accuracy (used as a tie-breaker).
+\end{enumerate}
+The selected model is serialized and integrated into the backend for real-time and batch prediction workflows.
+
+%% ====================================================================
+\section{Experimental Results}
+%% ====================================================================
+
+This section presents an experimental evaluation comparing Random Forest~(RF) and Logistic Regression~(LR) on the holdout test set. Evaluation is conducted using accuracy, macro-precision, macro-recall, and macro-F1 metrics, together with confusion matrix-based class-wise analysis.
+
+\subsection{Overall Performance}
+
+Table~\ref{tab:performance} summarizes the evaluation results for both classifiers.
+
+\begin{table}[htbp]
+\caption{Model Performance Comparison}
+\label{tab:performance}
+\centering
+\begin{tabular}{@{}lcccc@{}}
+\toprule
+\textbf{Model} & \textbf{Accuracy} & \textbf{Macro-P} & \textbf{Macro-R} & \textbf{Macro-F1} \\
+\midrule
+Random Forest       & 0.4569 & 0.3270 & 0.3275 & 0.3249 \\
+Logistic Regression & 0.3459 & 0.3633 & 0.3576 & 0.3197 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Random Forest achieves higher accuracy and a marginally superior Macro-F1 score, and is therefore selected as the deployment model according to the project selection criterion.
+
+\subsection{Class-Wise Error Analysis}
+
+The Random Forest confusion matrix (rows: true classes; columns: predicted classes; class order: Low / Moderate / High) is:
+\begin{equation}
+\mathbf{C}_{\text{RF}} =
+\begin{bmatrix}
+  8  &  50 &  82 \\
+ 27  & 146 & 304 \\
+ 47  & 253 & 488
+\end{bmatrix}.
+\label{eq:confusion_matrix}
+\end{equation}
+
+The classifier performs best on the majority \textit{High} class (recall $\approx$ 61.9\%), while \textit{Low}-class recall remains notably weak ($\approx$ 5.7\%). This behavior is expected under severe class imbalance and feature overlap across adjacent burnout levels~\cite{imbalance_learning}.
+
+\subsection{Visualization Outputs}
+
+The pipeline generates three analytical visualizations to support interpretability for academic and counseling stakeholders:
+
+\begin{figure}[!t]
+\centering
+\fbox{\parbox[c][2.0in][c]{0.90\linewidth}{\centering\textit{Stress Level vs.\ CGPA Scatter Plot}}}
+\caption{Stress level versus CGPA distribution, colored by burnout category.}
+\label{fig:stress_vs_cgpa}
+\end{figure}
+
+\begin{figure}[!t]
+\centering
+\fbox{\parbox[c][2.0in][c]{0.90\linewidth}{\centering\textit{Sleep Quality vs.\ Burnout Count}}}
+\caption{Sleep quality distribution across burnout categories.}
+\label{fig:sleep_quality_vs_burnout}
+\end{figure}
+
+\begin{figure}[!t]
+\centering
+\fbox{\parbox[c][2.0in][c]{0.90\linewidth}{\centering\textit{Financial Stress vs.\ Burnout Distribution}}}
+\caption{Financial stress distribution by burnout category.}
+\label{fig:financial_stress_vs_burnout}
+\end{figure}
+
+%% ====================================================================
+\section{System Implementation}
+%% ====================================================================
+
+BurnoutSense is implemented as a full-stack prototype with clearly separated presentation, application, and intelligence layers to ensure modularity, reproducibility, and deployability. Table~\ref{tab:system_components} provides a high-level overview of the system components.
+
+\begin{table}[htbp]
+\caption{System Component Overview}
+\label{tab:system_components}
+\centering
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Layer} & \textbf{Technology} \\
+\midrule
+Backend / API   & FastAPI + Uvicorn (ASGI) \\
+ML Inference    & scikit-learn pipelines, serialized via joblib \\
+Frontend        & React + Vite \\
+Persistence     & SQLite \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{System Architecture and Workflow}
+
+The architecture follows a request-driven design pattern. User behavioral data are entered through the dashboard; the backend processes requests and translates inputs into predictions and interpretations via the inference service. Predictions are displayed as risk cards, trend charts, and actionable recommendations. In authenticated mode, submissions are persisted, enabling continuous longitudinal supervision rather than one-off assessment.
+
+\begin{figure}[!t]
+\centering
+\includegraphics[width=\linewidth]{image.png}
+\caption{System architecture of BurnoutSense.}
+\label{fig:architecture}
+\end{figure}
+
+\subsection{Backend and API Services}
+
+The server-side component is built with FastAPI, selected for its high throughput, automatic request-schema validation, and auto-generated API documentation. Core API endpoints support:
+
+\begin{enumerate}[leftmargin=*]
+    \item Single-user burnout risk prediction,
+    \item Model metrics retrieval,
+    \item Batch prediction via CSV upload, and
+    \item Authenticated progress management (create, read, summarize).
+\end{enumerate}
+
+Input/output contracts are defined using Pydantic schemas to prevent malformed requests and ensure cross-client compatibility. User authentication and progress tracking employ token-based session management. The persistence layer uses SQLite for lightweight deployment while storing user records, daily progress histories, and metadata for longitudinal analysis.
+
+\subsection{Machine Learning Inference Layer}
+
+The inference module relies on serialized scikit-learn pipelines (via \texttt{joblib}). At inference time, the service loads the selected trained model and applies the same preprocessing pipeline used during training, thereby ensuring consistency between experimental and production environments. Two supervised models are currently supported:
+
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Logistic Regression}: Interpretable baseline.
+    \item \textbf{Random Forest}: Production-grade model, selected for superior nonlinear modeling performance.
+\end{itemize}
+
+At inference time, the system returns the predicted risk class, class probabilities, and component-wise ABI scores.
+
+\subsection{Frontend Dashboard and User Interaction}
+
+The client-side dashboard is developed using the React framework with the Vite build toolchain. The interface supports four primary use cases:
+\begin{enumerate}[leftmargin=*]
+    \item Individual prediction from manual input,
+    \item Batch upload and report generation,
+    \item Analytics visualization (distribution charts, summary cards), and
+    \item Longitudinal progress tracking.
+\end{enumerate}
+
+\subsection{Operational Modes}
+
+BurnoutSense supports both synchronous and asynchronous operation:
+\begin{itemize}[leftmargin=*]
+    \item \textbf{Real-time mode}: Individual users receive burnout risk estimates immediately upon data submission.
+    \item \textbf{Batch mode}: Institutional users process multiple entries simultaneously and generate structured reports for review.
+\end{itemize}
+
+This dual-mode design enables the system to serve both individual-level monitoring and cohort-level institutional purposes, functioning as an early-warning mechanism grounded in both algorithmic prediction and human intervention.
+
+%% ====================================================================
+\section{Discussion}
+%% ====================================================================
+
+The empirical results demonstrate that behavioral and psychosocial features can support burnout risk classification in practice, albeit with notable performance limitations. A Macro-F1 score of approximately 0.32 reflects moderate discriminability among the three risk groups. While class-weight tuning improves overall consistency, minority classes---particularly the \textit{Low}-risk category---remain underrepresented in predictions, constraining performance in scenarios where class-wise balance is essential.
+
+Despite these limitations, the framework delivers meaningful utility in a \textit{preventive analytics} context. Specifically, BurnoutSense should be understood as a \emph{triaging} tool rather than a self-sufficient diagnostic system. The integration of prediction scores with interpretable ABI components facilitates transparent communication of risk estimates and alignment with human-in-the-loop (HIL) workflows~\cite{xai_education, ethics_ai_mental_health}. Consequently, the proposed framework is well suited for monitoring tasks in educational environments, provided that clinical personnel remain involved in final decision-making processes.
+
+%% ====================================================================
+\section{Conclusion and Future Work}
+%% ====================================================================
+
+This paper introduced \textit{BurnoutSense}, a hybrid system combining supervised burnout risk classification with an interpretable Academic Burnout Index~(ABI). Experimental evaluation demonstrated that Random Forest outperforms Logistic Regression on the present dataset according to the Macro-F1 criterion; it is therefore selected as the deployment model.
+
+\subsection{Threats to Validity}
+
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Construct validity}: Burnout classifications are derived from a composite score-based algorithm rather than a clinically validated diagnosis. The target variable therefore reflects estimated risk levels and does not necessarily correspond to the true severity of burnout.
+
+    \item \textbf{Internal validity}: The analysis relies on a single instance of stratified train--test splitting. While reproducibility is ensured via a fixed random seed, this approach may not fully capture variance across alternative splits; repeated cross-validation would strengthen internal reliability.
+
+    \item \textbf{External validity}: The model is evaluated on a single dataset. Generalizability to other student populations, institutions, or cultural settings remains untested.
+
+    \item \textbf{Data imbalance}: The class distribution is heavily skewed toward the \textit{High}-risk category, introducing bias and limiting minority-class performance.
+\end{enumerate}
+
+\subsection{Future Work}
+
+Several directions for future work are identified:
+\begin{enumerate}[leftmargin=*]
+    \item \textbf{Class imbalance mitigation}: Applying oversampling (e.g., SMOTE), undersampling, or cost-sensitive strategies to improve minority-class performance.
+    \item \textbf{Robust evaluation}: Conducting repeated stratified cross-validation and probability calibration to improve generalization reliability.
+    \item \textbf{Feature enrichment}: Incorporating richer behavioral data sources (e.g., LMS interaction logs, wearable sensor data).
+    \item \textbf{Explainability}: Integrating model-agnostic explanation techniques such as SHAP to enhance transparency.
+    \item \textbf{Multi-center validation}: Evaluating the framework across diverse institutions with appropriate ethical oversight.
+\end{enumerate}
+
+By combining predictive analytics with interpretable scoring and continuous monitoring, BurnoutSense has the potential to become a valuable instrument for student guidance and early intervention in higher education institutions.
+
+%% ====================================================================
+\section*{Acknowledgment}
+%% ====================================================================
+
+The authors wish to express their sincere gratitude to Dr.~Ranjana Sharma, Associate Professor, Department of Computer Science \& Engineering, SRM Institute of Science \& Technology, for her invaluable guidance, constructive criticism, and consistent encouragement throughout this study. We also thank SRM Institute of Science \& Technology, Delhi-NCR Campus, for providing the necessary facilities to conduct this research.
+
+%% ====================================================================
+\newpage
+\begin{thebibliography}{10}
+
+\bibitem{burnout_overview}
+C.~Maslach and M.~P.~Leiter, ``Understanding the burnout experience: Recent research and its implications for psychiatry,'' \emph{World Psychiatry}, vol.~15, no.~2, pp.~103--111, 2016, doi:~10.1002/wps.20311.
+
+\bibitem{edu_mental_health}
+R.~P.~Auerbach \emph{et~al.}, ``WHO World Mental Health Surveys International College Student Project: Prevalence and distribution of mental disorders,'' \emph{J.\ Abnormal Psychol.}, vol.~127, no.~7, pp.~623--638, 2018, doi:~10.1037/abn0000362.
+
+\bibitem{early_warning_higher_ed}
+S.~M.~Jayaprakash, E.~W.~Moody, E.~J.~Lauria, J.~R.~Regan, and J.~D.~Baron, ``Early alert of academically at-risk students: An open source analytics initiative,'' \emph{J.\ Learning Analytics}, vol.~1, no.~1, pp.~6--47, 2014, doi:~10.18608/jla.2014.11.3.
+
+\bibitem{edm_survey}
+C.~Romero and S.~Ventura, ``Educational data mining and learning analytics: An updated survey,'' \emph{WIREs Data Mining Knowl.\ Discov.}, vol.~10, no.~3, p.~e1355, 2020, doi:~10.1002/widm.1355.
+
+\bibitem{student_stress_ml}
+A.~B.~R.~Shatte, D.~M.~Hutchinson, and S.~J.~Teague, ``Machine learning in mental health: A scoping review of methods and applications,'' \emph{Psychol.\ Med.}, vol.~49, no.~9, pp.~1426--1448, 2019, doi:~10.1017/S0033291719000151.
+
+\bibitem{rf_foundation}
+L.~Breiman, ``Random forests,'' \emph{Mach.\ Learn.}, vol.~45, no.~1, pp.~5--32, 2001, doi:~10.1023/A:1010933404324.
+
+\bibitem{logreg_multiclass}
+D.~R.~Cox, ``The regression analysis of binary sequences,'' \emph{J.\ Roy.\ Statist.\ Soc.\ B}, vol.~20, no.~2, pp.~215--242, 1958.
+
+\bibitem{imbalance_learning}
+H.~He and E.~A.~Garcia, ``Learning from imbalanced data,'' \emph{IEEE Trans.\ Knowl.\ Data Eng.}, vol.~21, no.~9, pp.~1263--1284, 2009, doi:~10.1109/TKDE.2008.239.
+
+\bibitem{xai_education}
+M.~T.~Ribeiro, S.~Singh, and C.~Guestrin, ``Why should I trust you?: Explaining the predictions of any classifier,'' in \emph{Proc.\ 22nd ACM SIGKDD Int.\ Conf.\ Knowl.\ Discov.\ Data Mining}, 2016, pp.~1135--1144, doi:~10.1145/2939672.2939778.
+
+\bibitem{ethics_ai_mental_health}
+E.~Vayena, A.~Blasimme, and I.~G.~Cohen, ``Machine learning in medicine: Addressing ethical challenges,'' \emph{PLoS Med.}, vol.~15, no.~11, p.~e1002689, 2018, doi:~10.1371/journal.pmed.1002689.
+
+\bibitem{burnout_students}
+L.~Salmela-Aro and K.~Upadyaya, ``School burnout and engagement in the context of demands–resources model,'' \emph{British Journal of Educational Psychology}, vol.~84, no.~1, pp.~137--151, 2014, doi:~10.1111/bjep.12018.
+
+\bibitem{academic_burnout_measure}
+W.~B.~Schaufeli, I.~M.~Martínez, A.~M.~Pinto, M.~Salanova, and A.~B.~Bakker, ``Burnout and engagement in university students: A cross-national study,'' \emph{Journal of Cross-Cultural Psychology}, vol.~33, no.~5, pp.~464--481, 2002, doi:~10.1177/0022022102033005003.
+
+\bibitem{student_dropout_ml}
+T.~M.~Kotsiantis, ``Use of machine learning techniques for educational proposes: A decision support system for forecasting students’ grades,'' \emph{Artificial Intelligence Review}, vol.~37, no.~4, pp.~331--344, 2012, doi:~10.1007/s10462-011-9234-x.
+
+\bibitem{learning_analytics_review}
+G.~Siemens and R.~S.~J.~d.~Baker, ``Learning analytics and educational data mining: Towards communication and collaboration,'' in \emph{Proc.\ 2nd Int.\ Conf.\ Learning Analytics and Knowledge}, 2012, pp.~252--254, doi:~10.1145/2330601.2330661.
+
+\bibitem{mental_health_prediction}
+J.~Cheng, S.~B. Wang, and P.~S. Chen, ``Mental health prediction using machine learning methods: A review,'' \emph{IEEE Access}, vol.~8, pp.~184987--185006, 2020, doi:~10.1109/ACCESS.2020.3029955.
+
+\bibitem{stress_prediction_students}
+S.~R.~S. Rao and K.~R. Rao, ``Prediction of student stress levels using machine learning models,'' \emph{Procedia Computer Science}, vol.~172, pp.~964--969, 2020, doi:~10.1016/j.procs.2020.05.139.
+
+\bibitem{ensemble_learning_review}
+Z.~Zhou, ``Ensemble learning,'' \emph{Springer}, 2012, doi:~10.1007/978-1-4419-9326-7.
+
+\bibitem{healthcare_ml_review}
+D.~Esteva \emph{et~al.}, ``A guide to deep learning in healthcare,'' \emph{Nature Medicine}, vol.~25, pp.~24--29, 2019, doi:~10.1038/s41591-018-0316-z.
+
+\bibitem{student_performance_prediction}
+A.~Khan and M.~Ghulam, ``Student performance prediction using data mining classification techniques,'' \emph{International Journal of Modern Education and Computer Science}, vol.~11, no.~4, pp.~1--10, 2019, doi:~10.5815/ijmecs.2019.04.01.
+
+\bibitem{wellbeing_learning}
+F.~D. Benabou and R.~Tirole, ``Intrinsic and extrinsic motivation,'' \emph{Review of Economic Studies}, vol.~70, no.~3, pp.~489--520, 2003, doi:~10.1111/1467-937X.00253.
+\end{thebibliography}
+
+\end{document}

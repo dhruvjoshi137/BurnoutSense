@@ -1,0 +1,23 @@
+services:
+  backend:
+    build:
+      context: ./backend
+    environment:
+      DATABASE_URL: sqlite:////data/burnoutsense.db
+    ports:
+      - "8000:8000"
+    volumes:
+      - burnoutsense-data:/data
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        VITE_API_URL: http://localhost:8000
+    depends_on:
+      - backend
+    ports:
+      - "5173:80"
+
+volumes:
+  burnoutsense-data:

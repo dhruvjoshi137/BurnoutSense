@@ -76,6 +76,20 @@ npm install
 
 ## Running the Application
 
+### Virtualized Deployment with Docker
+
+If you want the full stack running in containers, use Docker Compose from the repository root:
+
+```bash
+docker compose up --build
+```
+
+This starts:
+- the FastAPI backend on `http://localhost:8000`
+- the React frontend on `http://localhost:5173`
+
+The frontend image is built with `VITE_API_URL=http://localhost:8000`, so it will talk to the backend container automatically in this setup.
+
 ### Start the Backend Server
 
 #### Windows (PowerShell)

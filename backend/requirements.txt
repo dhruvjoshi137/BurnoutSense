@@ -13,6 +13,7 @@ seaborn==0.13.2           # Advanced statistical visualization built on top of m
 joblib==1.4.2             # Used for saving and loading trained ML models efficiently
 sqlalchemy==2.0.38        # ORM for interacting with databases using Python objects instead of raw SQL
 alembic==1.10.2           # Database migration tool used with SQLAlchemy to manage schema changes
+psycopg2-binary==2.9.10   # PostgreSQL driver for managed cloud databases
 
 python-jose==3.3.0        # Library for creating and verifying JWT tokens (authentication)
 passlib==1.7.4            # Secure password hashing and verification
